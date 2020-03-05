@@ -30,7 +30,7 @@ function _main()
 
    // report connectivity status if available
    var connectInf;
-   
+
    if (g.connectedComp == 0)
    {
        connectInf = "no connectivity info";
@@ -51,8 +51,8 @@ function _main()
 
    g.topoSearch('DFS');
    document.write("<p>dfs_push: ", g.dfs_push, "</p>");
-   
-  
+
+
     // report connectivity status if available
 
     if (g.connectedComp == 0)
@@ -106,9 +106,10 @@ function Vertex(v)
 
 // -----------------------------------------------------------------------
 // Edge object constructor
-function Edge(target_v){
+function Edge(target_v, weight){
 
    this.target_v = target_v;
+   this.weight = weight;
 
 }
 
@@ -131,6 +132,7 @@ function Graph()
 
    this.connectedComp = 0;           // number of connected comps set by DFS; 0 (default) for no info
    this.adjMatrix = []               // graph adjacency matrix to be created on demand
+   this.weighted = false; // true if weighted graph, false otherwise (default unweighted)
 
 
    // --------------------
@@ -139,8 +141,8 @@ function Graph()
    this.read_graph = better_input;   // default input reader method
    this.print_graph = better_output; // better printer function
    this.list_vert = list_vert;
-   this.makeAdjMatrix = makeAdjMatrix; 
-  
+   this.makeAdjMatrix = makeAdjMatrix;
+
 
    this.add_edge = add_edge;        // replace (don't change old .add_edge)
    this.add_edge2 = add_edge2;
@@ -178,7 +180,7 @@ function list_vert()
 // --------------------
 function better_input(v,e)
 {
- 
+
   // set vertex and edge count fields
 this.nv = v.length;
 this.ne = e.length;
@@ -193,7 +195,7 @@ for (var i = 0; i < this.nv; i++)
 // remember to pass vertex ids to add_edge()
 for (var i = 0; i < this.ne; i++)
 {
-	this.add_edge2(e[i].u, e[i].v);
+	this.add_edge2(e[i].u, e[i].v, e[i].w);
 }
 
 // double edge count if graph undirected
@@ -201,13 +203,18 @@ if (!this.digraph)
 {
 	this.ne = e.length * 2;
 }
+// check if the graph is weighted
+   if (!(e[0].w == undefined))
+   {
+       this.weighted = true;
+   }
 }
 
 // --------------------
 function better_output()
 {
-   document.write("<p>GRAPH {",this.label, "} ", this.digraph?"":"UN", "DIRECTED - ", this.nv, " VERTICES, ",
-      this.ne, " EDGES:</p>");
+   document.write("<p>GRAPH {", this.label, "} ", this.weighted ? "WEIGHTED, " : "", this.digraph ? "" : "UN", "DIRECTED - ",
+    this.nv, " VERTICES, ", this.ne, " EDGES:</p>");
 
    // list vertices
    this.list_vert();
@@ -263,7 +270,7 @@ function bfs(v_i)
 
 var v = this.vert[v_i];
 
-// process v 
+// process v
 v.visit = true;
 
 // initialize queue with v
@@ -276,7 +283,7 @@ while (!queue.isEmpty())
 {
 
     // dequeue and process a vertex, u
-    
+
     var u_i = queue.dequeue();
     var u = this.vert[u_i];
     this.bfs_out[this.bfs_out.length] = u_i;
@@ -310,15 +317,15 @@ function adjacentById()
 
       for(var i=0; i<adjacent_traverse.length; i++){
          //extract target id from edge object
-         targetId[i] = adjacent_traverse[i].target_v;      
+         targetId[i] = adjacent_traverse[i].target_v;
       }
-   
+
       return targetId;
-   
+
 }
 
 // --------------------
-function add_edge2(u_i,v_i)
+function add_edge2(u_i,v_i,w)
 {
     // fetch vertices using their id, where u: edge source vertex, v: target vertex
 
@@ -329,13 +336,24 @@ function add_edge2(u_i,v_i)
    // (first create edge object using v_i as target, then pass object)
 
    var v_edge = new Edge(v_i);
+   if (!(w === undefined))
+   {
+
+       v_edge.weight = w;
+   }
    u.adjacent.insert(v_edge);
 
 
    // insert (v,u) if undirected graph (repeat above but reverse vertex order)
    if (!this.digraph)
 	{
-		u_edge = new Edge(u_i);  
+		u_edge = new Edge(u_i);
+    if (!(w === undefined))
+       {
+
+           u_edge.weight = w;
+
+       }
 		v.adjacent.insert(u_edge);
 	}
 
@@ -346,15 +364,15 @@ function add_edge2(u_i,v_i)
 function topoSearch(SearchT)
 {
 // mark all vertices unvisited
-for (var i = 0; i < this.nv; i++) 
+for (var i = 0; i < this.nv; i++)
 {
    this.vert[i].visit = false;
 }
 
-// traverse unvisited connected component 	
-for (i = 0; i < this.nv; i++) 
+// traverse unvisited connected component
+for (i = 0; i < this.nv; i++)
 {
-   if (!this.vert[i].visit) 
+   if (!this.vert[i].visit)
    {
       if(SearchT == 'DFS'){
          this.dfs(i);
@@ -364,7 +382,7 @@ for (i = 0; i < this.nv; i++)
       else{
          this.bfs(i);
       }
-         
+
    }
 }
 }
@@ -372,24 +390,37 @@ for (i = 0; i < this.nv; i++)
 // --------------------
 function makeAdjMatrix()
 {
-   //  create adjacency matrix
-  
-   
-   for(var i=0; i<this.nv; i++){
-      this.adjMatrix[i]=[];
-      for(var j=0; j<this.nv;j++){
-         this.adjMatrix[i][j]=0;
-      }
+  // create matrix and set zero for the adjacency matrix
+for (var i = 0; i < this.nv; i++)
+{
+
+   this.adjMatrix[i] = [];
+
+   for (var j = 0; j < this.nv; j++)
+   {
+       this.adjMatrix[i][j] = 0;
    }
 
-   // for each vertex, set 1 for each adjacency
-   for(var i=0; i<this.nv; i++){
-      w = this.vert[i].adjacentById();
-      for(var j=0; j<w.length ; j++){
-         this.adjMatrix[i][w[j]]=1;
-      }
+
+   // set the weight for edge if weighted graph
+   if (this.weighted)
+   {
+       var adj = this.vert[i].adjacent.traverse();
+       for (var j = 0; j < adj.length; j++)
+       {
+           var edge = adj[j];
+           this.adjMatrix[i][edge.target_v] = edge.weight;
+       }
    }
 
-   return this.adjMatrix;
+   // set 1 for adjacency vertices if not weighted graph
+   else
+   {
+       var w = this.vert[i].adjacentById();
+       for (var j = 0; j < w.length; j++)
+       {
+           this.adjMatrix[i][w[j]] = 1;
+       }
+   }
 }
-
+}
